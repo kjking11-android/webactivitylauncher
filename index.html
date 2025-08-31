@@ -117,7 +117,7 @@
 --md-sys-color-background: var(--md-sys-color-background-dark);
 --md-sys-color-on-background: var(--md-sys-color-on-background-dark);
 --md-sys-color-surface: var(--md-sys-color-surface-dark);
---md-sys-color-on-surface: var(--md-sys-color-on-surface-dark);
+--md-sys-color-on-surface-dark: var(--md-sys-color-on-surface-dark);
 --md-sys-color-surface-variant: var(--md-sys-color-surface-variant-dark);
 --md-sys-color-on-surface-variant: var(--md-sys-color-on-surface-variant-dark);
 --md-sys-color-outline: var(--md-sys-color-outline-dark);
@@ -186,6 +186,71 @@ color: var(--md-sys-color-on-surface-variant);
 .intent-form input::placeholder {
 color: var(--md-sys-color-on-surface-variant);
 opacity: 0.6;
+}
+
+.save-button-container {
+display: flex;
+gap: 8px;
+align-items: center;
+}
+
+.save-button-container input {
+flex: 1;
+}
+
+/* 保存リスト */
+#savedIntentsList {
+display: flex;
+flex-direction: column;
+gap: 16px;
+margin-top: 24px;
+}
+
+.saved-item {
+background-color: var(--md-sys-color-surface-variant);
+border-radius: 12px;
+padding: 16px;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.saved-item-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.saved-item-header h4 {
+margin: 0;
+color: var(--md-sys-color-on-surface-variant);
+font-weight: 500;
+}
+.saved-item-body {
+font-size: 14px;
+color: var(--md-sys-color-on-surface-variant);
+opacity: 0.8;
+word-break: break-all;
+}
+.saved-item-actions {
+display: flex;
+justify-content: flex-end;
+gap: 8px;
+}
+.saved-item-actions .action-button {
+padding: 8px 16px;
+border-radius: 16px;
+border: none;
+cursor: pointer;
+font-size: 14px;
+font-weight: 500;
+transition: background-color 0.2s;
+}
+.saved-item-actions .launch-button {
+background-color: var(--md-sys-color-primary);
+color: var(--md-sys-color-on-primary);
+}
+.saved-item-actions .delete-button {
+background-color: var(--md-sys-color-outline);
+color: var(--md-sys-color-on-background);
 }
 
 /* ナビゲーションバー */
@@ -340,6 +405,21 @@ background-color: var(--md-sys-color-on-primary);
 <button class="button" onclick="launchCustomIntent()">起動</button>
 </div>
 </div>
+
+<div class="setting-section">
+<h3>カスタムIntentを保存</h3>
+<div class="save-button-container">
+<input type="text" id="intentName" placeholder="名前をつけて保存">
+<button class="button" onclick="saveCustomIntent()">保存</button>
+</div>
+</div>
+</div>
+
+<div id="saved-content" class="content">
+<h2>保存済み</h2>
+<div id="savedIntentsList">
+<p id="noSavedMessage">保存されたIntentはありません。</p>
+</div>
 </div>
 
 <div id="settings-content" class="content">
@@ -369,6 +449,10 @@ background-color: var(--md-sys-color-on-primary);
 <span class="material-symbols-outlined">home</span>
 <span>ホーム</span>
 </div>
+<div class="nav-item" id="saved-tab">
+<span class="material-symbols-outlined">bookmark</span>
+<span>保存</span>
+</div>
 <div class="nav-item" id="settings-tab">
 <span class="material-symbols-outlined">settings</span>
 <span>設定</span>
@@ -379,11 +463,146 @@ background-color: var(--md-sys-color-on-primary);
 document.addEventListener('DOMContentLoaded', () => {
 const body = document.body;
 const homeTab = document.getElementById('home-tab');
+const savedTab = document.getElementById('saved-tab');
 const settingsTab = document.getElementById('settings-tab');
 const homeContent = document.getElementById('home-content');
+const savedContent = document.getElementById('saved-content');
 const settingsContent = document.getElementById('settings-content');
 const darkModeToggle = document.getElementById('darkModeToggle');
 const colorOptions = document.querySelectorAll('.color-option');
+
+const DB_NAME = 'intentDB';
+const DB_VERSION = 1;
+const OBJECT_STORE_NAME = 'intents';
+let db;
+
+// IndexedDBの初期化
+function initDb() {
+return new Promise((resolve, reject) => {
+const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+request.onerror = (event) => {
+console.error('IndexedDB error:', event.target.errorCode);
+reject('Database error');
+};
+
+request.onupgradeneeded = (event) => {
+db = event.target.result;
+const objectStore = db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+objectStore.createIndex('name', 'name', { unique: false });
+};
+
+request.onsuccess = (event) => {
+db = event.target.result;
+resolve();
+};
+});
+}
+
+// 保存されたIntentを読み込んで表示
+function loadSavedIntents() {
+const savedIntentsList = document.getElementById('savedIntentsList');
+savedIntentsList.innerHTML = ''; // リストをクリア
+const transaction = db.transaction([OBJECT_STORE_NAME], 'readonly');
+const objectStore = transaction.objectStore(OBJECT_STORE_NAME);
+const request = objectStore.getAll();
+
+request.onsuccess = (event) => {
+const intents = event.target.result;
+if (intents.length === 0) {
+savedIntentsList.innerHTML = '<p id="noSavedMessage">保存されたIntentはありません。</p>';
+} else {
+intents.forEach(intent => {
+const itemHtml = `
+<div class="saved-item">
+<div class="saved-item-header">
+<h4>${intent.name}</h4>
+</div>
+<div class="saved-item-body">
+<p>パッケージ: ${intent.packageName}</p>
+<p>アクティビティ: ${intent.activityName}</p>
+</div>
+<div class="saved-item-actions">
+<button class="action-button launch-button" onclick="launchSavedIntent(${intent.id})">起動</button>
+<button class="action-button delete-button" onclick="deleteSavedIntent(${intent.id})">削除</button>
+</div>
+</div>
+`;
+savedIntentsList.innerHTML += itemHtml;
+});
+}
+};
+}
+
+// Intentを保存する
+window.saveCustomIntent = function() {
+const packageName = document.getElementById('packageName').value;
+const activityName = document.getElementById('activityName').value;
+const intentName = document.getElementById('intentName').value;
+
+if (!packageName || !activityName || !intentName) {
+alert('パッケージ名、アクティビティ名、名前のすべてを入力してください。');
+return;
+}
+
+const transaction = db.transaction([OBJECT_STORE_NAME], 'readwrite');
+const objectStore = transaction.objectStore(OBJECT_STORE_NAME);
+const intent = {
+name: intentName,
+packageName: packageName,
+activityName: activityName,
+timestamp: new Date()
+};
+const request = objectStore.add(intent);
+
+request.onsuccess = () => {
+alert('Intentが保存されました！');
+document.getElementById('packageName').value = '';
+document.getElementById('activityName').value = '';
+document.getElementById('intentName').value = '';
+loadSavedIntents();
+};
+
+request.onerror = (event) => {
+console.error('保存エラー:', event.target.error);
+alert('Intentの保存に失敗しました。');
+};
+};
+
+// 保存したIntentを起動する
+window.launchSavedIntent = function(id) {
+const transaction = db.transaction([OBJECT_STORE_NAME], 'readonly');
+const objectStore = transaction.objectStore(OBJECT_STORE_NAME);
+const request = objectStore.get(id);
+
+request.onsuccess = (event) => {
+const intent = event.target.result;
+if (intent) {
+const intentUrl = `intent://${intent.packageName}/#Intent;component=${intent.packageName}${intent.activityName};end`;
+window.location.href = intentUrl;
+}
+};
+};
+
+// 保存したIntentを削除する
+window.deleteSavedIntent = function(id) {
+if (!confirm('このIntentを削除してもよろしいですか？')) {
+return;
+}
+const transaction = db.transaction([OBJECT_STORE_NAME], 'readwrite');
+const objectStore = transaction.objectStore(OBJECT_STORE_NAME);
+const request = objectStore.delete(id);
+
+request.onsuccess = () => {
+loadSavedIntents();
+};
+
+request.onerror = (event) => {
+console.error('削除エラー:', event.target.error);
+alert('削除に失敗しました。');
+};
+};
+
 // タブ切り替え
 function setActiveTab(activeTabId) {
 document.querySelectorAll('.nav-item').forEach(tab => tab.classList.remove('active'));
@@ -391,9 +610,14 @@ document.querySelectorAll('.content').forEach(content => content.classList.remov
 
 document.getElementById(activeTabId).classList.add('active');
 document.getElementById(activeTabId.replace('-tab', '-content')).classList.add('active');
+
+if (activeTabId === 'saved-tab') {
+loadSavedIntents();
+}
 }
 
 homeTab.addEventListener('click', () => setActiveTab('home-tab'));
+savedTab.addEventListener('click', () => setActiveTab('saved-tab'));
 settingsTab.addEventListener('click', () => setActiveTab('settings-tab'));
 
 // ダークモード切り替え
@@ -419,10 +643,14 @@ document.documentElement.classList.add(`theme-${theme}`);
 }
 });
 });
+
+initDb().then(() => {
+loadSavedIntents();
+});
 });
 
-// カスタムIntent起動関数
-function launchCustomIntent() {
+// カスタムIntent起動関数 (グローバルスコープに移動)
+window.launchCustomIntent = function() {
 const packageName = document.getElementById('packageName').value;
 const activityName = document.getElementById('activityName').value;
 if (packageName && activityName) {
@@ -431,7 +659,7 @@ window.location.href = intentUrl;
 } else {
 alert('パッケージ名とアクティビティ名の両方を入力してください。');
 }
-}
+};
 </script>
 </body>
 </html>
