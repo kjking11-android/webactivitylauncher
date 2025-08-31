@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Material You テスター</title>
+<title>Material You 動画プレイヤー</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
 /*
@@ -147,6 +147,7 @@ display: none;
 .content.active {
 display: block;
 }
+
 /* ボタン */
 .button-group {
 display: flex;
@@ -154,7 +155,6 @@ flex-direction: column;
 gap: 16px;
 margin-top: 24px;
 }
-
 .button {
 width: 100%;
 padding: 14px 24px;
@@ -169,32 +169,39 @@ transition: background-color 0.2s;
 text-align: center;
 }
 
-/* カスタムIntent入力フォーム */
-.intent-section {
+/* 動画プレイヤーと入力フォーム */
+#player {
+width: 100%;
+max-width: 100%;
+border-radius: 12px;
+margin-top: 16px;
+background-color: #000;
+}
+.video-section {
 background-color: var(--md-sys-color-surface-variant);
 border-radius: 12px;
 padding: 16px;
 margin-top: 16px;
 }
-.intent-section h3 {
+.video-section h3 {
 margin-top: 0;
 margin-bottom: 16px;
 font-size: 16px;
 color: var(--md-sys-color-on-surface-variant);
 }
-.intent-form {
+.video-form {
 display: flex;
 flex-direction: column;
 gap: 12px;
 }
-.intent-form input {
+.video-form input {
 padding: 12px;
 border-radius: 8px;
 border: 1px solid var(--md-sys-color-outline);
 background-color: var(--md-sys-color-surface);
 color: var(--md-sys-color-on-surface);
 }
-.intent-form input::placeholder {
+.video-form input::placeholder {
 color: var(--md-sys-color-on-surface);
 opacity: 0.6;
 }
@@ -366,27 +373,24 @@ background-color: var(--md-sys-color-on-primary);
 
 <div class="container">
 <div id="home-content" class="content active">
-<h2>ホーム</h2>
-<p>各ボタンをクリックして、指定されたAndroid Intentを起動します。</p>
-<div class="button-group">
-<button class="button" onclick="window.location.href = 'intent://com.google.android.gms/#Intent;scheme=promote_smartlock_scheme;end';">LockScreen</button>
-<button class="button" onclick="window.location.href = 'intent://com.google.android.gms/#Intent;scheme=auth_frp_FactoryResetProtectionActivity;end';">Familylink Browser</button>
-</div>
+<h2>動画プレイヤー</h2>
+<p>URLを入力して動画を再生・保存します。</p>
+<video id="player" controls autoplay></video>
 
-<div class="intent-section">
-<h3>カスタムIntentを起動・保存</h3>
-<div class="intent-form">
-<input type="text" id="customName" placeholder="名前 (例: Googleマップ)">
-<input type="text" id="intentUrl" placeholder="Intent URL (例: intent://com.google.android.gms/#Intent;scheme=promote_smartlock_scheme;end)">
-<button class="button" onclick="launchCustomIntent()">起動</button>
-<button class="button" onclick="saveIntent()">名前をつけて保存</button>
+<div class="video-section">
+<h3>動画URLを入力</h3>
+<div class="video-form">
+<input type="text" id="videoUrl" placeholder="動画URL (例: https://example.com/video.mp4)">
+<input type="text" id="videoName" placeholder="名前 (例: 面白い猫動画)">
+<button class="button" onclick="loadAndPlayVideo()">再生</button>
+<button class="button" onclick="saveVideoUrl()">名前をつけて保存</button>
 </div>
 </div>
 </div>
 
 <div id="saved-content" class="content">
-<h2>保存済みアクティビティ</h2>
-<p id="noSavedMessage" style="display: none; text-align: center; color: var(--md-sys-color-on-surface-variant);">まだ保存されたアクティビティはありません。</p>
+<h2>保存済み動画</h2>
+<p id="noSavedMessage" style="display: none; text-align: center; color: var(--md-sys-color-on-surface-variant);">まだ保存された動画はありません。</p>
 <div id="savedList"></div>
 </div>
 
@@ -413,8 +417,8 @@ background-color: var(--md-sys-color-on-primary);
 
 <div class="bottom-nav">
 <div class="nav-item active" id="home-tab">
-<span class="material-symbols-outlined">home</span>
-<span>ホーム</span>
+<span class="material-symbols-outlined">play_circle</span>
+<span>再生</span>
 </div>
 <div class="nav-item" id="saved-tab">
 <span class="material-symbols-outlined">bookmark</span>
@@ -427,9 +431,9 @@ background-color: var(--md-sys-color-on-primary);
 </div>
 
 <script>
-const DB_NAME = 'IntentDB';
+const DB_NAME = 'VideoDB';
 const DB_VERSION = 1;
-const STORE_NAME = 'intents';
+const STORE_NAME = 'videos';
 
 let db;
 
@@ -441,39 +445,51 @@ db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
 };
 request.onsuccess = (event) => {
 db = event.target.result;
-loadSavedIntents();
+loadSavedVideos();
 };
 request.onerror = (event) => {
 console.error('IndexedDB error:', event.target.errorCode);
 };
 }
 
-function saveIntent() {
-const name = document.getElementById('customName').value;
-const url = document.getElementById('intentUrl').value;
+function loadAndPlayVideo() {
+const url = document.getElementById('videoUrl').value;
+const player = document.getElementById('player');
+if (url) {
+player.src = url;
+player.load();
+player.play();
+} else {
+alert('動画URLを入力してください。');
+}
+}
+
+function saveVideoUrl() {
+const name = document.getElementById('videoName').value;
+const url = document.getElementById('videoUrl').value;
 
 if (!name || !url) {
-alert('名前とIntent URLの両方を入力してください。');
+alert('名前と動画URLの両方を入力してください。');
 return;
 }
 
 const transaction = db.transaction([STORE_NAME], 'readwrite');
 const store = transaction.objectStore(STORE_NAME);
-const intent = { name, url, timestamp: Date.now() };
+const video = { name, url, timestamp: Date.now() };
 
-const request = store.add(intent);
+const request = store.add(video);
 request.onsuccess = () => {
-alert('Intentを保存しました。');
-document.getElementById('customName').value = '';
-document.getElementById('intentUrl').value = '';
-loadSavedIntents();
+alert('動画URLを保存しました。');
+document.getElementById('videoName').value = '';
+document.getElementById('videoUrl').value = '';
+loadSavedVideos();
 };
 request.onerror = (event) => {
 console.error('保存エラー:', event.target.error);
 };
 }
 
-function loadSavedIntents() {
+function loadSavedVideos() {
 const savedList = document.getElementById('savedList');
 savedList.innerHTML = '';
 document.getElementById('noSavedMessage').style.display = 'none';
@@ -483,25 +499,27 @@ const store = transaction.objectStore(STORE_NAME);
 const request = store.getAll();
 
 request.onsuccess = (event) => {
-const intents = event.target.result;
-if (intents.length === 0) {
+const videos = event.target.result;
+if (videos.length === 0) {
 document.getElementById('noSavedMessage').style.display = 'block';
 } else {
-intents.forEach(intent => {
+videos.forEach(video => {
 const item = document.createElement('div');
 item.className = 'saved-item';
-item.dataset.id = intent.id;
+item.dataset.id = video.id;
 item.innerHTML = `
-<h4>${intent.name}</h4>
-<p>${intent.url}</p>
+<h4>${video.name}</h4>
+<p>${video.url}</p>
 `;
 item.addEventListener('click', () => {
-window.location.href = intent.url;
+document.getElementById('videoUrl').value = video.url;
+loadAndPlayVideo();
+document.getElementById('home-tab').click(); // 「再生」タブに移動
 });
 item.addEventListener('contextmenu', (e) => {
 e.preventDefault();
-if (confirm(`${intent.name} を削除しますか？`)) {
-deleteIntent(intent.id);
+if (confirm(`${video.name} を削除しますか？`)) {
+deleteVideo(video.id);
 }
 });
 savedList.appendChild(item);
@@ -510,26 +528,17 @@ savedList.appendChild(item);
 };
 }
 
-function deleteIntent(id) {
+function deleteVideo(id) {
 const transaction = db.transaction([STORE_NAME], 'readwrite');
 const store = transaction.objectStore(STORE_NAME);
 const request = store.delete(id);
 request.onsuccess = () => {
 alert('削除しました。');
-loadSavedIntents();
+loadSavedVideos();
 };
 request.onerror = (event) => {
 console.error('削除エラー:', event.target.error);
 };
-}
-
-function launchCustomIntent() {
-const url = document.getElementById('intentUrl').value;
-if (url) {
-window.location.href = url;
-} else {
-alert('Intent URLを入力してください。');
-}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -556,7 +565,7 @@ document.getElementById(activeTabId.replace('-tab', '-content')).classList.add('
 homeTab.addEventListener('click', () => setActiveTab('home-tab'));
 savedTab.addEventListener('click', () => {
 setActiveTab('saved-tab');
-loadSavedIntents();
+loadSavedVideos();
 });
 settingsTab.addEventListener('click', () => setActiveTab('settings-tab'));
 
