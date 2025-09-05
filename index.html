@@ -25,6 +25,7 @@
 --md-sys-color-surface-variant-light: #dfe2eb;
 --md-sys-color-on-surface-variant-light: #43474e;
 --md-sys-color-outline-light: #73777f;
+--md-sys-color-surface-container-light: #f3f6f9;
 
 --md-sys-color-primary-dark: #9fcbff;
 --md-sys-color-on-primary-dark: #003258;
@@ -37,6 +38,7 @@
 --md-sys-color-surface-variant-dark: #43474e;
 --md-sys-color-on-surface-variant-dark: #c3c6cf;
 --md-sys-color-outline-dark: #8d9199;
+--md-sys-color-surface-container-dark: #22252a;
 }
 
 /* 青緑テーマ */
@@ -52,6 +54,7 @@
 --md-sys-color-surface-variant-light: #dae5e3;
 --md-sys-color-on-surface-variant-light: #3f4947;
 --md-sys-color-outline-light: #6f7978;
+--md-sys-color-surface-container-light: #e0e3e2;
 --md-sys-color-primary-dark: #4fdcc8;
 --md-sys-color-on-primary-dark: #003732;
 --md-sys-color-primary-container-dark: #005049;
@@ -63,6 +66,7 @@
 --md-sys-color-surface-variant-dark: #3f4947;
 --md-sys-color-on-surface-variant-dark: #bec9c7;
 --md-sys-color-outline-dark: #899391;
+--md-sys-color-surface-container-dark: #272a29;
 }
 
 /* 紫テーマ */
@@ -78,6 +82,7 @@
 --md-sys-color-surface-variant-light: #eaddf8;
 --md-sys-color-on-surface-variant-light: #4c4451;
 --md-sys-color-outline-light: #7e7486;
+--md-sys-color-surface-container-light: #f3f6f9;
 
 --md-sys-color-primary-dark: #f0dbff;
 --md-sys-color-on-primary-dark: #471e6d;
@@ -90,6 +95,7 @@
 --md-sys-color-surface-variant-dark: #4c4451;
 --md-sys-color-on-surface-variant-dark: #ccc3d1;
 --md-sys-color-outline-dark: #988d9c;
+--md-sys-color-surface-container-dark: #29252c;
 }
 
 /* 現在のテーマカラー変数（デフォルトはライトモード） */
@@ -106,6 +112,7 @@
 --md-sys-color-surface-variant: var(--md-sys-color-surface-variant-light);
 --md-sys-color-on-surface-variant: var(--md-sys-color-on-surface-variant-light);
 --md-sys-color-outline: var(--md-sys-color-outline-light);
+--md-sys-color-surface-container: var(--md-sys-color-surface-container-light);
 }
 
 /* ダークモード時のカラー変数 */
@@ -121,6 +128,7 @@
 --md-sys-color-surface-variant: var(--md-sys-color-surface-variant-dark);
 --md-sys-color-on-surface-variant: var(--md-sys-color-on-surface-variant-dark);
 --md-sys-color-outline: var(--md-sys-color-outline-dark);
+--md-sys-color-surface-container: var(--md-sys-color-surface-container-dark);
 }
 
 /* 全体スタイル */
@@ -154,11 +162,11 @@ z-index: 100;
 }
 
 .side-nav {
-display: none; /* デフォルトでは非表示 */
+display: none;
 flex-direction: column;
 padding: 12px;
-width: 80px;
-background-color: var(--md-sys-color-surface);
+width: 250px;
+background-color: var(--md-sys-color-surface-container);
 box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
@@ -194,14 +202,15 @@ margin-top: 4px;
 }
 
 .nav-item-side {
-border-radius: 20px;
-margin-bottom: 8px;
-height: 56px;
-width: 56px;
 display: flex;
 align-items: center;
-justify-content: center;
-flex-direction: column;
+gap: 16px;
+padding: 12px 16px;
+border-radius: 16px;
+margin-bottom: 8px;
+cursor: pointer;
+color: var(--md-sys-color-on-surface-variant);
+transition: background-color 0.2s, color 0.2s;
 }
 .nav-item-side.active {
 background-color: var(--md-sys-color-primary-container);
@@ -210,6 +219,12 @@ color: var(--md-sys-color-on-primary-container);
 .nav-item-side .material-symbols-outlined {
 font-size: 24px;
 }
+.nav-item-side span {
+font-size: 14px;
+}
+.nav-item-side.active .material-symbols-outlined {
+font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
 
 /* コンテンツ表示エリア */
 .container {
@@ -217,7 +232,7 @@ flex-grow: 1;
 padding: 16px;
 max-width: 800px;
 margin: 0 auto;
-padding-bottom: 64px; /* モバイル用ナビゲーションバーの高さ */
+padding-bottom: 64px;
 }
 
 .content {
@@ -319,9 +334,9 @@ display: flex;
 }
 .container {
 padding: 32px;
+padding-left: 280px;
 max-width: none;
 margin: 0;
-padding-left: 100px; /* サイドナビゲーションバーの幅分 */
 }
 }
 </style>
@@ -330,11 +345,13 @@ padding-left: 100px; /* サイドナビゲーションバーの幅分 */
 
 <div class="main-layout">
 <div class="side-nav">
-<div class="nav-item nav-item-side active" id="home-tab-side" data-content-id="home-content">
+<div class="nav-item-side active" id="home-tab-side" data-content-id="home-content">
 <span class="material-symbols-outlined">home</span>
+<span>ホーム</span>
 </div>
-<div class="nav-item nav-item-side" id="settings-tab-side" data-content-id="settings-content">
+<div class="nav-item-side" id="settings-tab-side" data-content-id="settings-content">
 <span class="material-symbols-outlined">settings</span>
+<span>設定</span>
 </div>
 </div>
 
@@ -382,7 +399,7 @@ padding-left: 100px; /* サイドナビゲーションバーの幅分 */
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 const body = document.body;
-const navItems = document.querySelectorAll('.nav-item');
+const navItems = document.querySelectorAll('.nav-item, .nav-item-side');
 const darkModeToggle = document.getElementById('darkModeToggle');
 const colorOptions = document.querySelectorAll('.color-option');
 
